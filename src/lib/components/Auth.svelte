@@ -11,37 +11,53 @@
     let isSignUp = false;
     
     async function handleAuth() {
+        console.log(`Attempting to ${isSignUp ? 'sign up' : 'sign in'} with email: ${email}`);
         loading = true;
         error = null;
         
         try {
             if (isSignUp) {
-                const { error: signUpError } = await supabase.auth.signUp({ 
+                console.log('Registering new user...');
+                const { data, error: signUpError } = await supabase.auth.signUp({ 
                     email, 
                     password 
                 });
                 
-                if (signUpError) throw signUpError;
+                console.log('Sign up response:', data ? 'Success' : 'Failed');
+                
+                if (signUpError) {
+                    console.error('Sign up error:', signUpError);
+                    throw signUpError;
+                }
                 
                 // Show success message for sign up
+                console.log('Dispatching sign up success message');
                 dispatch('message', {
                     type: 'success',
                     text: 'Check your email for the confirmation link!'
                 });
                 
             } else {
-                const { error: signInError } = await supabase.auth.signInWithPassword({ 
+                console.log('Signing in existing user...');
+                const { data, error: signInError } = await supabase.auth.signInWithPassword({ 
                     email, 
                     password 
                 });
                 
-                if (signInError) throw signInError;
+                console.log('Sign in response:', data?.user ? 'Success' : 'Failed');
+                
+                if (signInError) {
+                    console.error('Sign in error:', signInError);
+                    throw signInError;
+                }
                 
                 // Successfully logged in
+                console.log('Successfully signed in, dispatching event');
                 dispatch('signedIn');
             }
             
         } catch (e) {
+            console.error('Auth error:', e);
             error = e.message || 'An error occurred during authentication.';
         } finally {
             loading = false;
@@ -49,6 +65,7 @@
     }
     
     function toggleMode() {
+        console.log(`Switching to ${!isSignUp ? 'sign up' : 'sign in'} mode`);
         isSignUp = !isSignUp;
         error = null;
     }

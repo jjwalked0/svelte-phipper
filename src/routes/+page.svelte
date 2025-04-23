@@ -11,13 +11,17 @@
     let message: { type: string; text: string } | null = null;
     
     onMount(() => {
+        console.log('Component mounted, initializing auth...');
         initializeAuth();
         
         // Subscribe to user store to load inventory when user changes
         const unsubscribe = user.subscribe(async (userData) => {
+            console.log('User state changed:', userData ? 'logged in' : 'logged out');
             if (userData) {
+                console.log('Loading inventory for user:', userData.id);
                 await loadInventory(userData.id);
             } else {
+                console.log('No user, clearing inventory');
                 inventory = [];
             }
         });
@@ -27,7 +31,9 @@
     
     async function loadInventory(userId: string) {
         loadingInventory = true;
+        console.log('Fetching inventory items from Supabase...');
         inventory = await getInventoryItems(userId);
+        console.log('Inventory items loaded:', inventory.length);
         loadingInventory = false;
     }
     
@@ -39,32 +45,51 @@
             user_id: $user.id
         };
         
+        console.log('Adding new item to inventory:', itemToAdd);
         const addedItem = await addInventoryItem(itemToAdd);
         
         if (addedItem) {
+            console.log('Item added successfully:', addedItem);
             inventory = [addedItem, ...inventory];
             newItem = '';
+        } else {
+            console.error('Failed to add item');
         }
     }
     
     async function handleRemoveItem(id: number) {
+        console.log('Removing item with id:', id);
         const success = await removeInventoryItem(id);
         
         if (success) {
+            console.log('Item removed successfully');
             inventory = inventory.filter(item => item.id !== id);
+        } else {
+            console.error('Failed to remove item');
         }
     }
     
     function handleSignOut() {
+        console.log('User signing out');
         signOut();
     }
     
     function handleAuthMessage(event: CustomEvent) {
+        console.log('Auth message received:', event.detail);
         message = event.detail;
         // Clear message after 5 seconds
         setTimeout(() => {
             message = null;
         }, 5000);
+    }
+    
+    function handleSignedIn() {
+        console.log('Sign in successful!');
+        // You could show a welcome message or perform other actions
+        message = {
+            type: 'success',
+            text: 'Signed in successfully! Welcome to Reselling Suite.'
+        };
     }
 </script>
 
@@ -78,9 +103,9 @@
     {/if}
     
     {#if $loading}
-        <p class="loading">Loading...</p>
+        <p class="loading">Loading authentication state...</p>
     {:else if !$user}
-        <Auth on:signedIn={() => {}} on:message={handleAuthMessage} />
+        <Auth on:signedIn={handleSignedIn} on:message={handleAuthMessage} />
     {:else}
         <div class="user-bar">
             <p>Signed in as {$user.email}</p>
